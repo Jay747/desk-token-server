@@ -64,7 +64,8 @@ app.get("/tickets", async (req, res) => {
     const monthRanges = getMonthRanges();
 
     const fromDate = monthRanges[0].from;
-    const url = `${ZOHO_API}/tickets?limit=300&sortBy=createdTime&sortOrder=desc&customFields=false&include=contactIds&filterBy=createdTime&fromDateTime=${fromDate}`;
+const url = `${ZOHO_API}/tickets?limit=300&sortBy=createdTime&sortOrder=desc&fromDateTime=${fromDate}`;
+
 
     const result = await fetch(url, { headers });
     const data = await result.json();
