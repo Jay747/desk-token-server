@@ -56,14 +56,13 @@ function getMonthRanges() {
   return ranges;
 }
 
-// Get ticket stats for dashboard
+// 🔥 Tickets endpoint for dashboard
 app.get("/tickets", async (req, res) => {
   try {
     const token = await refreshAccessToken();
     const headers = { Authorization: `Zoho-oauthtoken ${token}` };
     const monthRanges = getMonthRanges();
 
-    // Fetch all tickets created in the last 3 months (max 300 per call)
     const fromDate = monthRanges[0].from;
     const url = `${ZOHO_API}/tickets?limit=300&sortBy=createdTime&sortOrder=desc&customFields=false&include=contactIds&filterBy=createdTime&fromDateTime=${fromDate}`;
 
@@ -71,7 +70,6 @@ app.get("/tickets", async (req, res) => {
     const data = await result.json();
     const tickets = data.data || [];
 
-    // Prepare stats
     const monthlyCreated = [0, 0, 0];
     const monthlyClosed = [0, 0, 0];
     const statusCounts = {
@@ -83,18 +81,16 @@ app.get("/tickets", async (req, res) => {
 
     tickets.forEach(t => {
       const created = new Date(t.createdTime);
-      const closed = t.status === "Closed";
       const status = t.status;
 
-      // Count by status (this month only)
+      // Count status (for current month only)
       if (created >= new Date(monthRanges[2].from)) {
         if (statusCounts[status] !== undefined) statusCounts[status]++;
       }
 
       // Group by month
-      monthRanges.forEach((r, i) => {
-        const createdDate = new Date(t.createdTime);
-        if (createdDate >= new Date(r.from) && createdDate < new Date(r.to)) {
+      monthRanges.forEach((range, i) => {
+        if (created >= new Date(range.from) && created < new Date(range.to)) {
           monthlyCreated[i]++;
           if (t.status === "Closed") monthlyClosed[i]++;
         }
@@ -114,6 +110,7 @@ app.get("/tickets", async (req, res) => {
   }
 });
 
+// 🧪 Optional: for testing token manually
 app.get("/token", async (req, res) => {
   try {
     const token = await refreshAccessToken();
@@ -124,3 +121,4 @@ app.get("/token", async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+
