@@ -62,14 +62,24 @@ app.get("/tickets", async (req, res) => {
     const token = await refreshAccessToken();
     const headers = { Authorization: `Zoho-oauthtoken ${token}` };
     const monthRanges = getMonthRanges();
-
     const fromDate = monthRanges[0].from;
-const url = `${ZOHO_API}/tickets?limit=300&sortBy=createdTime&sortOrder=desc&fromDateTime=${fromDate}`;
 
+    const allTickets = [];
+    let page = 1;
+    const limit = 200;
 
-    const result = await fetch(url, { headers });
-    const data = await result.json();
-    const tickets = data.data || [];
+    while (true) {
+      const url = `${ZOHO_API}/tickets?limit=${limit}&page=${page}&sortBy=createdTime&sortOrder=desc&fromDateTime=${fromDate}`;
+      console.log(`Fetching page ${page}`);
+      const result = await fetch(url, { headers });
+      const data = await result.json();
+
+      if (!data.data || data.data.length === 0) break;
+
+      allTickets.push(...data.data);
+      if (data.data.length < limit) break;
+      page++;
+    }
 
     const monthlyCreated = [0, 0, 0];
     const monthlyClosed = [0, 0, 0];
@@ -80,7 +90,7 @@ const url = `${ZOHO_API}/tickets?limit=300&sortBy=createdTime&sortOrder=desc&fro
       "Waiting on Customer": 0
     };
 
-    tickets.forEach(t => {
+    allTickets.forEach(t => {
       const created = new Date(t.createdTime);
       const status = t.status;
 
@@ -93,7 +103,7 @@ const url = `${ZOHO_API}/tickets?limit=300&sortBy=createdTime&sortOrder=desc&fro
       monthRanges.forEach((range, i) => {
         if (created >= new Date(range.from) && created < new Date(range.to)) {
           monthlyCreated[i]++;
-          if (t.status === "Closed") monthlyClosed[i]++;
+          if (status === "Closed") monthlyClosed[i]++;
         }
       });
     });
@@ -110,6 +120,7 @@ const url = `${ZOHO_API}/tickets?limit=300&sortBy=createdTime&sortOrder=desc&fro
     res.status(500).json({ error: "Failed to fetch ticket data" });
   }
 });
+
 
 // 🧪 Optional: for testing token manually
 app.get("/token", async (req, res) => {
